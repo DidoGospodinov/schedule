@@ -172,7 +172,7 @@ def fetch_dates():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute('''
-        SELECT date FROM schedule WHERE '2024-01-01' <= date AND date <= '2024-12-31' GROUP BY date
+        SELECT date FROM schedule WHERE '2024-01-01' <= date AND date <= '2024-12-31'
     ''')
 
     result = cursor.fetchall()

@@ -1,3 +1,107 @@
-a = 'abcd'
+import tkinter as tk
+from tkinter import ttk
+from calendar import monthrange
+from datetime import datetime
+import database.queries as db
 
-print(' | '.join(list(a)))
+root = tk.Tk()
+root.title("Treeview Demo")
+root.geometry("800x400")
+
+def create_treeview():
+    # Frame to hold the custom headers and the Treeview
+    main_window_frame = tk.Frame(root)
+    main_window_frame.pack(side='right', fill='both', expand=True, padx=10, pady=10)
+
+    # Frame for custom headers
+    header_frame = tk.Frame(main_window_frame)
+    header_frame.pack(fill='x')
+
+    # Scrollable Treeview
+    tree_frame = tk.Frame(main_window_frame)
+    tree_frame.pack(fill='both', expand=True)
+
+    tree = ttk.Treeview(tree_frame, show='headings', columns=('', ''), height=10)
+
+    def create_headings(year, month):
+        """Dynamically create headings with multi-line text based on the number of days in the given month."""
+        # Clear existing columns in Treeview
+        tree["columns"] = []
+        for col in tree["columns"]:
+            tree.heading(col, text="")
+
+        # Clear the header_frame
+        for widget in header_frame.winfo_children():
+            widget.destroy()
+
+        # Get the number of days in the month
+        num_days = monthrange(year, month)[1]
+        columns = [f'{datetime(year, month, i).strftime("%d.%m.%Y")}' for i in range(1, num_days + 1)]
+        tree["columns"] = columns
+
+        # Add custom headers for each column
+        for day in range(1, num_days + 1):
+            date = datetime(year, month, day).strftime('%d.%m.%Y')
+            weekday = datetime(year, month, day).strftime('%A')
+
+            # Create a label for the custom header
+            header_label = tk.Label(
+                header_frame,
+                text=f'{date}\n{weekday}',
+                anchor='center',
+                justify='center',
+                padx=5,
+                pady=5,
+                bg='lightgrey',
+                relief='solid'
+            )
+            header_label.pack(side='left', fill='y', ipadx=20, ipady=10)
+
+            # Set Treeview column properties
+            tree.heading(date, text="", anchor='center')
+            tree.column(date, width=70, anchor='center')
+
+    def update_rows(filtered_dates, num_days):
+        """Update the rows in the Treeview with the filtered data."""
+        # Clear existing rows
+        for row in tree.get_children():
+            tree.delete(row)
+
+        # Prepare data for insertion
+        rows = [''] * num_days
+        for date in filtered_dates:
+            day = int(date.split('-')[2])  # Extract the day from the date string
+            rows[day - 1] = datetime.strptime(date, '%Y-%m-%d').strftime('%A')
+
+        # Insert a single row with dates
+        tree.insert('', tk.END, values=rows)
+
+    def fetch_data(year, month):
+        """Fetch data from the database and update the Treeview."""
+        # Call the database function to fetch rows
+        fetched_rows = db.fetch_dates()  # Returns all dates for the year
+
+        # Filter dates for the specified month
+        filtered_dates = [
+            date[0] for date in fetched_rows  # Unpack tuple
+            if datetime.strptime(date[0], '%Y-%m-%d').month == month and
+               datetime.strptime(date[0], '%Y-%m-%d').year == year
+        ]
+
+        # Create the headings dynamically based on the selected year and month
+        create_headings(year, month)
+
+        # Update the Treeview rows with filtered data
+        num_days = monthrange(year, month)[1]
+        update_rows(filtered_dates, num_days)
+
+    # Example: Fetch data for January 2024
+    fetch_data(2024, 1)
+
+    tree.pack(fill=tk.BOTH, expand=True)
+
+# Call the function to create the Treeview
+create_treeview()
+
+# Run the app
+root.mainloop()
